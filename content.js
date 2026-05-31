@@ -2,14 +2,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'startTranslation') {
         console.log('🚀 Inizio traduzione...');
         
-        // Carica Tesseract da CDN
+        // Carica Tesseract da CDN alternativo con fallback
         const script = document.createElement('script');
-        script.src = 'https://unpkg.com/tesseract.js@5/dist/tesseract.min.js';
+        script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js';
         script.onload = () => {
+            console.log('✅ Tesseract caricato da jsdelivr');
             performTranslation(request, sendResponse);
         };
         script.onerror = () => {
-            sendResponse({ success: false, message: 'Errore caricamento Tesseract' });
+            console.warn('Tesseract CDN 1 fallito, provo CDN 2...');
+            // Fallback a CDN 2
+            const script2 = document.createElement('script');
+            script2.src = 'https://unpkg.com/tesseract.js@5.0.4/dist/tesseract.min.js';
+            script2.onload = () => {
+                console.log('✅ Tesseract caricato da unpkg');
+                performTranslation(request, sendResponse);
+            };
+            script2.onerror = () => {
+                console.error('Entrambi i CDN falliti');
+                sendResponse({ success: false, message: '❌ Errore: Tesseract non si carica. Prova: 1) Disabilita ad-blocker/VPN 2) Ricarica estensione' });
+            };
+            document.head.appendChild(script2);
         };
         document.head.appendChild(script);
         
@@ -22,6 +35,13 @@ async function performTranslation(request, sendResponse) {
         const { apiKey, language, debugMode, confidence } = request;
 
         if (debugMode) console.log('Debug ON | Language:', language, '| Confidence:', confidence);
+
+        // Verifica che Tesseract sia disponibile
+        if (typeof Tesseract === 'undefined') {
+            console.error('❌ Tesseract non è disponibile globalmente');
+            sendResponse({ success: false, message: '❌ Tesseract non caricato. Disabilita ad-blocker e riprova.' });
+            return;
+        }
 
         // Trova immagine manga
         const img = [...document.images].find(i => 
@@ -36,6 +56,7 @@ async function performTranslation(request, sendResponse) {
         if (debugMode) console.log('📷 Immagine trovata:', img.src);
 
         // === OCR CON TESSERACT ===
+        console.log('⏳ OCR in corso...');
         const result = await Tesseract.recognize(img.src, 'eng', {
             tessedit_pageseg_mode: '6',
             tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?\'\"- :;…\n'
@@ -53,7 +74,7 @@ async function performTranslation(request, sendResponse) {
         if (debugMode) console.log('📊 Testi trovati:', validParagraphs.length);
 
         if (validParagraphs.length === 0) {
-            sendResponse({ success: false, message: 'Nessun balloon trovato! Prova zoom+' });
+            sendResponse({ success: false, message: 'Nessun balloon trovato! Prova: 1) Zoom+ 2) Diminuisci confidence' });
             return;
         }
 
@@ -62,6 +83,7 @@ async function performTranslation(request, sendResponse) {
         if (debugMode) console.log('Testi originali:', originalTexts);
 
         // === TRADUZIONE GEMINI ===
+        console.log('⏳ Traduzione in corso...');
         const languageMap = {
             italiano: 'italiano',
             spagnolo: 'spagnolo',
@@ -106,7 +128,7 @@ ${JSON.stringify(originalTexts)}
             translatedArray = JSON.parse(rawResponse);
         } catch (err) {
             if (debugMode) console.error('JSON Error:', data);
-            sendResponse({ success: false, message: 'Errore Gemini: JSON non valido' });
+            sendResponse({ success: false, message: 'Errore Gemini: JSON non valido. Controlla l\'API key.' });
             return;
         }
 
@@ -160,11 +182,11 @@ ${JSON.stringify(originalTexts)}
 
         sendResponse({ 
             success: true, 
-            message: `${validParagraphs.length} balloon tradotti!` 
+            message: `✅ ${validParagraphs.length} balloon tradotti!` 
         });
 
     } catch (error) {
-        console.error('Errore:', error);
-        sendResponse({ success: false, message: `Errore: ${error.message}` });
+        console.error('❌ Errore:', error);
+        sendResponse({ success: false, message: `❌ Errore: ${error.message}` });
     }
 }
