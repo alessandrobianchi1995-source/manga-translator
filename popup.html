@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manga Translator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🥸 Manga Translator</h1>
+        
+        <div class="section">
+            <label for="apiKey">API Key Gemini:</label>
+            <input 
+                type="password" 
+                id="apiKey" 
+                placeholder="Inserisci la tua API key"
+            >
+            <button id="saveBtn" class="btn btn-primary">Salva</button>
+        </div>
+
+        <div class="section">
+            <label for="language">Lingua di destinazione:</label>
+            <select id="language">
+                <option value="italiano">Italiano</option>
+                <option value="spagnolo">Spagnolo</option>
+                <option value="francese">Francese</option>
+                <option value="tedesco">Tedesco</option>
+            </select>
+        </div>
+
+        <div class="section">
+            <button id="translateBtn" class="btn btn-success">
+                ▶️ Traduci questa pagina
+            </button>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div class="section">
+            <details>
+                <summary>📊 Opzioni avanzate</summary>
+                <label>
+                    <input type="checkbox" id="debugMode"> 
+                    Debug Mode (console)
+                </label>
+                <br>
+                <label>
+                    Confidence minimo: 
+                    <input type="range" id="confidence" min="10" max="50" value="25">
+                    <span id="confidenceValue">25</span>%
+                </label>
+            </details>
+        </div>
+
+        <div class="section footer">
+            <small>Made with ❤️ | v1.0</small>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
